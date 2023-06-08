@@ -51,6 +51,7 @@ app.get("/api", async (req, res) => {
         );
         res.json({ response: await response }).status(200);
       } else {
+        console.log($);
         retry++;
       }
     } while (retry <= 5);
