@@ -9,7 +9,7 @@ function delay(milliseconds) {
   });
 }
 
-const scrapeLogic = async (res) => {
+const scrapeLogic = async (URL, res) => {
   let response = "dummy";
   const browser = await puppeteer.launch({
     args: ["--disable-setuid-sandbox", "--no-sandbox", "--no-zygote"],
@@ -22,22 +22,45 @@ const scrapeLogic = async (res) => {
     let retry = 0;
     do {
       console.log("Retyring... " + retry);
+      let domain = URL.replace(/.+\/\/|www.|\..+/g, "");
+      if (domain != null || domain != undefined || domain != "") {
+        domain = domain.toUpperCase();
+      } else {
+        let err = new Error();
+        err.message = "The url/link provided is invalid";
+        err.status = 403;
+        throw err;
+      }
       const page = await browser.newPage();
-      let URL =
-        "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy";
       let userAgent = getUserAgent();
       await page.setUserAgent(userAgent);
       await page.goto(URL, {
         waitUntil: "domcontentloaded",
       });
       let $ = cheerio.load(await page.content());
-      console.log("Cheerio Response : " + $ && $(".pdp-name").html());
-      if ($ && $(".pdp-name").html() != null) {
-        response = await fetchMyntra($, URL, "MYNTRA");
-        retry = 10;
-      } else {
-        await delay(2000);
-        retry++;
+      console.log("Scrapping..." + domain);
+      switch (domain) {
+        case "FLIPKART":
+          console.log("Response..." + $ && $(".B_NuCI").html());
+          if ($ && $(".B_NuCI").html() != null) {
+            response = await fetchFlipkart($, URL, domain);
+            retry = 10;
+          } else {
+            await delay(2000);
+            retry++;
+          }
+          break;
+        case "MYNTRA":
+          console.log("Response..." + $ && $(".pdp-name").html());
+          if ($ && $(".pdp-name").html() != null) {
+            response = await fetchMyntra($, URL, domain);
+            retry = 10;
+          } else {
+            await delay(2000);
+            retry++;
+          }
+        default:
+          break;
       }
     } while (retry <= 5);
   } catch (e) {
@@ -48,6 +71,98 @@ const scrapeLogic = async (res) => {
     res.json({ response: response }).status(200);
     await browser.close();
   }
+};
+
+const fetchFlipkart = async ($, URL, domain) => {
+  let response = {};
+  //title
+  response.title = $(".B_NuCI").text().trim();
+
+  //price
+  let price = {};
+
+  if ($("._16Jk6d").text() != null) {
+    price.discountPrice = $("._16Jk6d").text().trim();
+  }
+  if (price.discountPrice.length > 0) {
+    price.discountPrice = price.discountPrice.replaceAll(",", "");
+    if (price.discountPrice.charAt(0) == "₹") {
+      price.discountPrice = price.discountPrice.slice(1);
+    }
+  }
+
+  if ($("._2p6lqe").text() != null) {
+    price.originalPrice = $("._2p6lqe").text().trim();
+  } else {
+    price.originalPrice = price.discountPrice;
+  }
+  if (price.originalPrice.length > 0 && price.originalPrice.charAt(0) == "₹") {
+    price.originalPrice = price.originalPrice.slice(1);
+    price.originalPrice = price.originalPrice.replaceAll(",", "");
+  }
+
+  if (
+    price.originalPrice == "" ||
+    price.originalPrice == null ||
+    price.originalPrice == undefined
+  ) {
+    if (price.discountPrice != undefined)
+      price.originalPrice = price.discountPrice;
+  }
+
+  if (
+    price.discountPrice == "" ||
+    price.discountPrice == null ||
+    price.discountPrice == undefined
+  ) {
+    if (price.originalPrice != undefined)
+      price.discountPrice = price.originalPrice;
+  }
+
+  if (price.discountPrice) response.price = price;
+
+  //image
+
+  if ($("._2amPTt._3qGmMb").html() != null) {
+    response.image = $("._2amPTt._3qGmMb").attr().src;
+  } else if ($("._2r_T1I._396QI4").html() != null) {
+    response.image = $("._2r_T1I._396QI4").attr().src;
+  } else {
+    response.image = null;
+  }
+
+  //badge
+  response.badge = null;
+
+  //rate
+  let rate = {};
+
+  for (const e of $("._1lRcqv > ._3LWZlK")) {
+    rate.ratingCount = $(e).text() + " out of 5 stars";
+    break;
+  }
+
+  for (const e of $("._2_R_DZ")) {
+    rate.totalRated = $(e).text();
+    break;
+  }
+  response.rating = rate;
+
+  //domain
+  response.domain = domain;
+
+  //url
+  if (URL.includes("dl.flipkart.com")) {
+    if ($("link[rel='canonical']").attr("href")) {
+      response.url = $("link[rel='canonical']").attr("href");
+    } else {
+      response.url = $("meta[name='og_url']").attr("content");
+    }
+  } else {
+    response.url = URL;
+  }
+
+  return response;
 };
 
 const fetchMyntra = async ($, URL, domain) => {
