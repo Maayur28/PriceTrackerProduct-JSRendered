@@ -34,13 +34,15 @@ const scrapeLogic = async (URL, res) => {
       const page = await browser.newPage();
       let userAgent = getUserAgent();
       await page.setUserAgent(userAgent);
-      await page.goto(URL, {
-        waitUntil: "domcontentloaded",
-      });
-      let $ = cheerio.load(await page.content());
+      await page.goto(URL);
       console.log("Scrapping..." + domain);
+      let $ = null;
       switch (domain) {
         case "FLIPKART":
+          await page.goto(URL, {
+            waitUntil: "domcontentloaded",
+          });
+          $ = cheerio.load(await page.content());
           console.log("Response..." + $ && $(".B_NuCI").html());
           if ($ && $(".B_NuCI").html() != null) {
             response = await fetchFlipkart($, URL, domain);
@@ -51,6 +53,9 @@ const scrapeLogic = async (URL, res) => {
           }
           break;
         case "MYNTRA":
+          await page.goto(URL);
+          await page.waitForSelector(".pdp-name");
+          $ = cheerio.load(await page.content());
           console.log("Response..." + $ && $(".pdp-name").html());
           if ($ && $(".pdp-name").html() != null) {
             response = await fetchMyntra($, URL, domain);
