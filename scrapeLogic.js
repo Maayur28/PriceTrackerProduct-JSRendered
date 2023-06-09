@@ -10,13 +10,9 @@ function delay(milliseconds) {
 }
 
 const scrapeLogic = async (res) => {
+  let response = "dummy";
   const browser = await puppeteer.launch({
-    args: [
-      "--disable-setuid-sandbox",
-      "--no-sandbox",
-      "--single-process",
-      "--no-zygote",
-    ],
+    args: ["--disable-setuid-sandbox", "--no-sandbox", "--no-zygote"],
     executablePath:
       process.env.NODE_ENV === "production"
         ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -35,8 +31,8 @@ const scrapeLogic = async (res) => {
       });
       let $ = cheerio.load(await page.content());
       if ($ && $(".pdp-name").html() != null) {
-        let response = await fetchMyntra($, URL, "MYNTRA");
-        res.send(response);
+        response = await fetchMyntra($, URL, "MYNTRA");
+        retry = 10;
       } else {
         await delay(2000);
         retry++;
@@ -47,6 +43,7 @@ const scrapeLogic = async (res) => {
     res.send(`Something went wrong while running Puppeteer: ${e}`);
   } finally {
     console.log("finally");
+    res.json({ response: response }).status(200);
     await browser.close();
   }
 };
