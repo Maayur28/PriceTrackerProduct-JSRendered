@@ -21,6 +21,7 @@ const scrapeLogic = async (res) => {
   try {
     let retry = 0;
     do {
+      console.log("Retyring... " + retry);
       const page = await browser.newPage();
       let URL =
         "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy";
@@ -30,6 +31,7 @@ const scrapeLogic = async (res) => {
         waitUntil: "domcontentloaded",
       });
       let $ = cheerio.load(await page.content());
+      console.log("Cheerio Response : " + $ && $(".pdp-name").html());
       if ($ && $(".pdp-name").html() != null) {
         response = await fetchMyntra($, URL, "MYNTRA");
         retry = 10;
