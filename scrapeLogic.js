@@ -55,8 +55,10 @@ const scrapeLogic = async (URL, res) => {
         case "MYNTRA":
           await page.goto(URL);
           // Wait for the desired elements to appear
-          await page.waitForSelector(".pdp-name");
-          await page.waitForSelector(".pdp-price > strong");
+          await page.waitForFunction(
+            () => !!document.querySelector(".pdp-name"),
+            { timeout: 60000 }
+          );
           $ = cheerio.load(await page.content());
           console.log("Response..." + $ && $(".pdp-name").html());
           if ($ && $(".pdp-name").html() != null) {
