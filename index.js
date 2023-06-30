@@ -1,6 +1,7 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
 const axios = require("axios");
+const cheerio = require("cheerio");
 const app = express();
 
 require("dotenv").config();
@@ -53,43 +54,65 @@ const getUserAgent = (maxLimit) => {
   return rand;
 };
 
+const initialisePuppeteer = async () => {
+  const browser = await getBrowser();
+  let useragent = await fetchUserAgent();
+
+  let userAgent = useragent[getUserAgent(useragent.length)];
+  // Create a new page
+  const page = await browser.newPage();
+
+  await page.setUserAgent(userAgent);
+  // Example: Navigate to a website and fetch the title
+  await page.goto(
+    "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy",
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
+  let $ = cheerio.load(await page.content());
+  await browser.close();
+  return $;
+};
+
+const scrapMyntraPriceOnly = ($) => {
+  //price
+  let price = null;
+  if ($(".pdp-price > strong").html() != null) {
+    price = $(".pdp-price > strong").html().trim();
+  }
+  if (price.length > 0 && price.charAt(0) == "₹") {
+    price = price.slice(1);
+  }
+  return price;
+};
+
 app.get("/scrape", async (req, res) => {
   try {
-    // Launch Puppeteer with the Railway Chrome instance
-    const browser = await getBrowser();
-
-    let useragent = await fetchUserAgent();
-
-    let userAgent = useragent[getUserAgent(useragent.length)];
-    // Create a new page
-    const page = await browser.newPage();
-
-    await page.setUserAgent(userAgent);
-    // Example: Navigate to a website and fetch the title
-    await page.goto(
-      "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy",
-      {
-        waitUntil: "domcontentloaded",
+    let retry = 0;
+    console.log("IS_PRODUCTION: ", IS_PRODUCTION);
+    do {
+      console.log("Retrying...", retry);
+      let $ = await initialisePuppeteer();
+      if ($ && $(".pdp-name").html() != null) {
+        let price = await scrapMyntraPriceOnly($);
+        if (price != null) {
+          retry = 100;
+          console.log(price);
+          res.json(price).status(200);
+        } else {
+          console.log("price null !!! retrying....", retry);
+          await delay(2000);
+          retry++;
+        }
+      } else {
+        console.log("$ is null !!! retrying....", retry);
+        await delay(2000);
+        retry++;
       }
-    );
-
-    // Scrape the product details
-    const title = await page.$eval(".pdp-title", (element) =>
-      element.textContent.trim()
-    );
-    const price = await page.$eval(".pdp-price", (element) =>
-      element.textContent.trim()
-    );
-
-    // Log the scraped data
-    console.log("Title:", title);
-    console.log("Price:", price);
-
-    // Close the browser
-    await browser.close();
-    res.json(title).status(200);
+    } while (retry <= 5);
   } catch (error) {
-    console.error("An error occurred:", error.message);
+    console.log(error.message);
   }
 });
 
