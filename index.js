@@ -1,5 +1,5 @@
 const express = require("express");
-const { puppeteer } = require("puppeteer");
+const puppeteer = require("puppeteer");
 const app = express();
 
 require("dotenv").config();
