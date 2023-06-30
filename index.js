@@ -20,8 +20,19 @@ app.get("/scrape", async (req, res) => {
     await page.goto(
       "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy"
     );
-    const title = await page.title();
-    console.log("Page title:", title);
+    await page.waitForSelector(".pdp-title");
+
+    // Scrape the product details
+    const title = await page.$eval(".pdp-title", (element) =>
+      element.textContent.trim()
+    );
+    const price = await page.$eval(".pdp-price", (element) =>
+      element.textContent.trim()
+    );
+
+    // Log the scraped data
+    console.log("Title:", title);
+    console.log("Price:", price);
 
     // Close the browser
     await browser.close();
