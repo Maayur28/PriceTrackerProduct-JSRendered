@@ -59,7 +59,7 @@ const getUserAgent = (maxLimit) => {
 
 const initialisePuppeteer = async () => {
   //const browser = await getBrowser();
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
   let useragent = await fetchUserAgent();
   let userAgent = useragent[getUserAgent(useragent.length)];
   // Create a new page
