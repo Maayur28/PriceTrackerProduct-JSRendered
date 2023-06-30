@@ -1,0 +1,12 @@
+env:
+  PUPPETEER_EXECUTABLE_PATH: "/usr/bin/google-chrome-stable"
+  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+  CHROMEDRIVER_VERSION: "latest"
+  CHROMEDRIVER_BINARY_PATH: "/usr/bin/chromedriver"
+  GOOGLE_CHROME_SHIM: "/usr/bin/google-chrome-stable"
+  DISABLE_SANDBOX: "true"
+
+services:
+  - name: chrome
+    image: browserless/chrome
+    env: --no-sandbox
