@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 
+require("dotenv").config();
+
 const PORT = process.env.PORT || 4000;
 
 app.get("/scrape", async(req, res) => {
@@ -12,7 +14,7 @@ app.get("/scrape", async(req, res) => {
   const page = await browser.newPage();
 
   await page.goto("https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy");
-  
+
   const title = await page.title();
   console.log('Page title:', title);
 
