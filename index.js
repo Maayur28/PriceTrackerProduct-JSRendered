@@ -17,7 +17,7 @@ function delay(milliseconds) {
 }
 
 const getBrowser = async () =>
-  IS_PRODUCTION
+  !IS_PRODUCTION
     ? // Connect to browserless so we don't run Chrome on the same hardware in production
       puppeteer.connect({
         browserWSEndpoint: "wss://browserless-production-1385.up.railway.app/",
@@ -46,6 +46,9 @@ const fetchUserAgent = async () => {
   if (response == null || response == undefined) {
     throw new Error("Invalid Useragents");
   }
+  response = await axios.get(
+    `${process.env.DOMAIN_FETCH_VALUE}${response.data}`
+  );
   return response.data;
 };
 
@@ -55,9 +58,9 @@ const getUserAgent = (maxLimit) => {
 };
 
 const initialisePuppeteer = async () => {
-  const browser = await getBrowser();
+  //const browser = await getBrowser();
+  const browser = await puppeteer.launch();
   let useragent = await fetchUserAgent();
-
   let userAgent = useragent[getUserAgent(useragent.length)];
   // Create a new page
   const page = await browser.newPage();
@@ -67,9 +70,10 @@ const initialisePuppeteer = async () => {
   await page.goto(
     "https://www.myntra.com/sports-shoes/puma/puma-men-black-zeta-mesh-running-shoes/14463342/buy",
     {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle2",
     }
   );
+  console.log("Title :", await page.title());
   let $ = cheerio.load(await page.content());
   await browser.close();
   return $;
