@@ -26,7 +26,7 @@ app.get("/scrape", async (req, res) => {
     // Close the browser
     await browser.close();
   } catch (error) {
-    console.error("An error occurred:", error);
+    console.error("An error occurred:", error.message);
   }
 });
 
