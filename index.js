@@ -21,6 +21,8 @@ app.get("/scrape", async (req, res) => {
   const title = await page.title();
   console.log("Page title:", title);
 
+  res.send(await title).status(200);
+
   // Close the browser
   await browser.close();
 });
